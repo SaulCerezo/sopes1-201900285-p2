@@ -1,0 +1,24 @@
+# Ignorar carpetas de compilación
+**/target/
+
+# Archivos de lock si no quieres subirlos
+**/Cargo.lock
+
+# Archivos binarios y temporales
+*.exe
+*.out
+*.o
+*.rlib
+*.log
+
+# VS Code config
+.vscode/
+
+# Docker
+**/Dockerfile
+**/docker-compose.yml
+.dockerignore
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
