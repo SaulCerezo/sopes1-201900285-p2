@@ -7,5 +7,13 @@ edition = "2021"
 actix-web = "4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-env_logger = "0.10"  # Para logging
-log = "0.4"         # Necesario para env_logger
+env_logger = "0.10"
+log = "0.4"
+
+# 🔽 Nuevas dependencias para gRPC
+tonic = { version = "0.11", features = ["transport"] }
+tokio = { version = "1", features = ["full"] }
+prost = "0.12"
+
+[build-dependencies]
+tonic-build = "0.11"
