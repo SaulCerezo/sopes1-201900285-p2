@@ -1,4 +1,67 @@
-# sopes1-201900285-p2
+# 🐳 Despliegue Kubernetes - Proyecto TweetsClima
+
+Este proyecto se compone de varios microservicios escritos en Rust y Go, comunicándose a través de gRPC y RabbitMQ. A continuación se documentan los despliegues (Deployment), servicios (Service) e ingreso (Ingress) usados para desplegar la solución en un clúster de Kubernetes.
+
+### Estructura de Archivos YAML
+
+Todos los archivos .yaml se encuentran en la carpeta k8s/ y cumplen con los siguientes propósitos:
+
+|Archivo |Descripción |
+| ------------- | ------------- | 
+|rust-api-deployment.yaml| Despliega 2 réplicas del servicio REST en Rust|
+|rust-api-service.yaml|Expone internamente el servicio Rust en el puerto 8000|
+|go-entry-deployment.yaml| Despliega 2 réplicas del servidor gRPC en Go|
+|go-entry-service.yaml|Expone internamente el servicio gRPC en el puerto 50051|
+|analyzer-deployment.yaml|Despliega 1 réplica del consumidor de mensajes RabbitMQ|
+|analyzer-service.yaml|(Opcional) Servicio para exponer el analyzer|
+|rabbitmq-deployment.yaml|Despliega RabbitMQ con UI de administración|
+|rabbitmq-service.yaml|Expone internamente RabbitMQ (5672) y su UI (15672)|
+|ingress.yaml|Expone el servicio REST (Rust) mediante Ingress|
+
+### Comandos de Despliegue
+Hay que asegurarse de estar autenticado con tu clúster de Kubernetes y tener configurado el contexto.
+
+1. Aplicar todos los archivos:
+
+```
+kubectl apply -f k8s/
+
+```
+2. Verificar los pods:
+```
+kubectl get pods
+
+```
+3. Verificar los servicios:
+```
+kubectl get svc
+
+```
+4. Verificar el ingreso (Ingress):
+```
+kubectl get ingress
+
+```
+
+### Acceso Vía Ingress
+Si tienes un Ingress Controller (como NGINX) y tu dominio apunta correctamente al clúster, podrás acceder al servicio REST así:
+
+```
+http://<tu-dominio>/api
+
+```
+Por ejemplo:
+```
+http://34.122.55.100.nip.io/api
+
+```
+
+##  Ejemplo de Flujo
+1. rust-api recibe peticiones HTTP en /api.
+2. Se comunica con go-entry usando gRPC.
+3. go-entry publica mensajes en RabbitMQ.
+4. analyzer consume esos mensajes desde RabbitMQ y los almacena en un archivo .json.
+
 
 ## Rust-api creando la imagen
 
