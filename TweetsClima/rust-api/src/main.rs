@@ -1,9 +1,10 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, middleware::Logger};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
+use std::env;           // ✅ Importar para leer variables de entorno
+use dotenv::dotenv;     // ✅ Importar para cargar .env
 use env_logger;
 
-// Cliente gRPC generado por tonic
 pub mod weather {
     tonic::include_proto!("weather");
 }
@@ -34,7 +35,6 @@ async fn input(
     
     stored_tweets.extend(tweets.into_inner());
 
-    // Convertir los tweets al formato gRPC
     let grpc_tweets: Vec<Tweet> = stored_tweets
         .iter()
         .map(|t| Tweet {
@@ -44,8 +44,13 @@ async fn input(
         })
         .collect();
 
-    // Conectarse al servidor Go (desde Docker se usa host.docker.internal)
-    let mut grpc_client = match WeatherServiceClient::connect("http://host.docker.internal:50051").await {
+    // ✅ Leer la dirección del servidor gRPC desde la variable de entorno
+    let grpc_addr = env::var("GRPC_SERVER").unwrap_or_else(|_| {
+        println!("⚠️  GRPC_SERVER no definida, usando http://localhost:50051 por defecto");
+        "http://localhost:50051".to_string()
+    });
+
+    let mut grpc_client = match WeatherServiceClient::connect(grpc_addr).await {
         Ok(client) => client,
         Err(err) => {
             println!("❌ Error al conectar con el servidor Go: {}", err);
@@ -79,6 +84,7 @@ async fn input(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok(); // ✅ Cargar variables de entorno desde .env
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let app_state = web::Data::new(AppState {

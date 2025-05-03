@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/SaulCerezo/TweetsClima/go-entry/github.com/SaulCerezo/TweetsClima/go-entry/proto"
 	"github.com/streadway/amqp"
@@ -18,8 +19,18 @@ type server struct {
 func (s *server) SendTweets(ctx context.Context, req *proto.TweetBatch) (*proto.Ack, error) {
 	log.Printf("Received %d tweets", len(req.Tweets))
 
+	// Variables de entorno
+	rabbitUser := os.Getenv("RABBITMQ_USER")
+	rabbitPass := os.Getenv("RABBITMQ_PASS")
+	rabbitHost := os.Getenv("RABBITMQ_HOST")
+	rabbitPort := os.Getenv("RABBITMQ_PORT")
+
+	// URL de conexión a RabbitMQ
+	connStr := fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbitUser, rabbitPass, rabbitHost, rabbitPort)
+	log.Println("🔌 Conectando a RabbitMQ en:", connStr)
+
 	// Conectar a RabbitMQ
-	conn, err := amqp.Dial("amqp://admin:admin@rabbitmq:5672/")
+	conn, err := amqp.Dial(connStr)
 	if err != nil {
 		log.Printf("❌ Error al conectar a RabbitMQ: %v", err)
 		return nil, err
@@ -58,7 +69,13 @@ func (s *server) SendTweets(ctx context.Context, req *proto.TweetBatch) (*proto.
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":50051")
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+
+	addr := fmt.Sprintf(":%s", grpcPort)
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -66,7 +83,7 @@ func main() {
 	s := grpc.NewServer()
 	proto.RegisterWeatherServiceServer(s, &server{})
 
-	fmt.Println("Servidor gRPC escuchando en :50051...")
+	fmt.Printf("🚀 Servidor gRPC escuchando en %s...\n", addr)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
