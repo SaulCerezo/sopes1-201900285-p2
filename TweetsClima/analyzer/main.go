@@ -1,11 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
+	"os"
 	"time"
 
 	"github.com/streadway/amqp"
 )
+
+type Tweet struct {
+	Body string    `json:"body"`
+	Time time.Time `json:"time"`
+}
 
 func connectRabbitMQ() *amqp.Connection {
 	var conn *amqp.Connection
@@ -25,6 +32,30 @@ func connectRabbitMQ() *amqp.Connection {
 	return nil
 }
 
+func appendTweetToFile(tweet Tweet) {
+	log.Println("📁 Intentando guardar tweet en tweets.json...")
+
+	file, err := os.OpenFile("tweets.json", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("❌ Error abriendo archivo: %v", err)
+		return
+	}
+	defer file.Close()
+
+	data, err := json.Marshal(tweet)
+	if err != nil {
+		log.Printf("❌ Error convirtiendo a JSON: %v", err)
+		return
+	}
+
+	_, err = file.Write(append(data, '\n'))
+	if err != nil {
+		log.Printf("❌ Error escribiendo al archivo: %v", err)
+	} else {
+		log.Println("✅ Tweet guardado en tweets.json")
+	}
+}
+
 func main() {
 	conn := connectRabbitMQ()
 	defer conn.Close()
@@ -35,28 +66,12 @@ func main() {
 	}
 	defer ch.Close()
 
-	// Asegurar que la cola exista
-	_, err = ch.QueueDeclare(
-		"tweets", // nombre de la cola
-		false,    // durable
-		false,    // auto-delete
-		false,    // exclusive
-		false,    // no-wait
-		nil,      // args
-	)
+	_, err = ch.QueueDeclare("tweets", false, false, false, false, nil)
 	if err != nil {
-		log.Fatalf("❌ Error al declarar la cola: %v", err)
+		log.Fatalf("❌ Error al declarar cola: %v", err)
 	}
 
-	msgs, err := ch.Consume(
-		"tweets", // nombre de la cola
-		"",       // consumer tag
-		true,     // auto-ack
-		false,    // exclusive
-		false,    // no-local
-		false,    // no-wait
-		nil,      // args
-	)
+	msgs, err := ch.Consume("tweets", "", true, false, false, false, nil)
 	if err != nil {
 		log.Fatalf("❌ Error al consumir de la cola: %v", err)
 	}
@@ -67,6 +82,11 @@ func main() {
 	go func() {
 		for d := range msgs {
 			log.Printf("🟢 Recibido: %s", d.Body)
+			tweet := Tweet{
+				Body: string(d.Body),
+				Time: time.Now(),
+			}
+			appendTweetToFile(tweet)
 		}
 	}()
 	<-forever
