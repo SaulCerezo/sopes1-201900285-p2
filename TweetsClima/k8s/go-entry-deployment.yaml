@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-entry
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-entry
+  template:
+    metadata:
+      labels:
+        app: go-entry
+    spec:
+      containers:
+        - name: go-entry
+          image: saulcerezo/sopes1p2:go-entry-v1
+          ports:
+            - containerPort: 50051

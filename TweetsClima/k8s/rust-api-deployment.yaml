@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rust-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rust-api
+  template:
+    metadata:
+      labels:
+        app: rust-api
+    spec:
+      containers:
+        - name: rust-api
+          image: saulcerezo/sopes1p2:rust-api-v1
+          ports:
+            - containerPort: 8000
+          env:
+            - name: GRPC_SERVER
+              value: "http://go-entry:50051"
